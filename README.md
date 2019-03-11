@@ -2,6 +2,7 @@
 
 ## Let's be ready first. 
 `i'm using Ubuntu 16.04 64-bit`; We need to install:
+
 **1.** cross-toolchain for ARM (to build `ARM binaries` on x86 platform ([`cross-compilation`](https://en.wikipedia.org/wiki/Cross_compiler))):
 ```
 $ sudo apt-get install gcc-arm-linux-gnueabi
@@ -36,3 +37,108 @@ $ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig
 $ make -j4 ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- zImage
 ```
 default zImage location is `arch/arm/boot/zImage`.
+
+Now let's create our first driver. You must be inside `linux` root folder, then go to the folder with drivers and choose the most appropriate directory for storing your driver (in my case it's `$ cd drivers/misc && touch hello_world.c`).
+``` C
+/* hello_world.c */
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Hello module");
+MODULE_AUTHOR("Kseniia Prytkova");
+
+static int __init hello_init(void)
+{
+	printk("Hello world\n");
+	return 0;
+}
+
+static void __exit hello_exit(void)
+{
+	printk("Goodbye, world\n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+```
+![module_skeleton](imgs/module_skeleton.png)
+Then we should describe the configuration interface for our new driver by edditing the `Kconfig` file (which is located in the same directory with our new driver).
+```
+$ pwd
+/linux/drivers/misc
+$ vim Kconfig
+```
+add something like:
+```
+config MISC_HELLO_WORLD
+	tristate "Hello world module example"
+	---help---
+		To compile this driver as a module, choose M
+		here: the module will be called "Hello world".
+```
+make some changes in the Makefile file based on the Kconfig setting (location is the same):
+```
+$ pwd
+/linux/drivers/misc
+$ vim Makefile
+```
+add a line:
+```
+obj-$(CONFIG_MISC_HELLO_WORLD)	+= hello_world.o
+```
+now run `$ make menuconfig` and you will see your new module:
+![mc_example](imgs/mc_example.png)
+press <M> and modularize your driver.
+
+Next step is to compile our driver. We have 2 options: `1)` select the letter `<M>` after executing the command `$ make menuconfig` - **modularizing our feature** - this means that we will add our driver to the file system and then connect it with Linux Kernel (`$ make -j4 modules`). `2)` Choosing the letter `<Y>` - **includes our feature** - means we are adding our driver directly to the appropriate folder in `linux/drivers`, we are changing Linux Kernel physically, so we need to rebuild the entire Linux Kernel and get a new `zImage` (`$ make zImage`).
+
+We are using 'module approach'. In practice, we must modularize our driver directly in the code (not in the graphical interface). And never forget about target architecture. So:
+```
+$ cd arch/arm
+$ vim configs/multi_v7_defconfig
+```
+add this line:
+```
+CONFIG_MISC_HELLO_WORLD=m
+```
+go to root of Linux Kernel (/linux) and run:
+```
+$ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig
+$ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig /* to chech that our configs were saved */
+$ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j4 modules
+```
+in `linux/drivers/misc` will appear: `hello_world.ko`, `hello_world.mod.c`, `hello_world.mod.o`, `hello_world.o`. Good!
+
+The last step is to connect rootfs.cpio archive with Linux Kernel. Download rootfs.cpio, in my case:
+![where_is_cpio](imgs/where_is_cpio.png)
+**IMPORTANT!** All manipulations with rootfs.cpio we should do **under root user**:
+```
+$ sudo su
+$ export ROOTFS_ARCHIVE=/path/to/rootfs.cpio
+$ mkdir rootfs && cd rootfs
+```
+unpack your archive:
+```
+$ cpio -i < $ROOTFS_ARCHIVE
+```
+add here your modules or do all needed changes to the rootfs filesystem; create rootfs archive again (attention: rewrites original file!).
+```
+$ find . | cpio -o -H newc > $ROOTFS_ARCHIVE
+```
+finish root mode (`$ exit`).
+Let's check!
+```
+$ cd linux
+$ qemu-system-arm -machine virt -kernel ./arch/arm/boot/zImage -initrd ../rootfs.cpio -nographic -m 512 --append "root=/dev/ram0 rw console=ttyAMA0,38400 console=ttyS0 mem=512M loglevel=9"
+```
+![qemu_inside](imgs/qemu_inside.png)
+here:
+```
+# insmod hello_world.ko 
+[  553.320697] Hello world
+# rmmod hello_world.ko 
+[  561.826473] Goodbye, world
+```
+![null_pointer](imgs/null_pointer.png)
