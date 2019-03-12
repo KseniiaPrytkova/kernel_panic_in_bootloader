@@ -9,13 +9,11 @@ MODULE_AUTHOR("Kseniia Prytkova");
 
 static int __init hello_init(void)
 {
-	int var;
 	int *p;
 
-	var = 42;
 	p = NULL;
 	printk("Do you wanna know what an undefined behavior is?\n");
-	//*var = *p;
+	printk("Ohh really?!\n");
 	printk("%d\n", *p);
 	return 0;
 }

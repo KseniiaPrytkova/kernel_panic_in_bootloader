@@ -64,6 +64,7 @@ module_init(hello_init);
 module_exit(hello_exit);
 ```
 ![module_skeleton](imgs/module_skeleton.png)
+
 Then we should describe the configuration interface for our new driver by edditing the `Kconfig` file (which is located in the same directory with our new driver).
 ```
 $ pwd
@@ -90,7 +91,8 @@ obj-$(CONFIG_MISC_HELLO_WORLD)	+= hello_world.o
 ```
 now run `$ make menuconfig` and you will see your new module:
 ![mc_example](imgs/mc_example.png)
-press <M> and modularize your driver.
+
+press `<M>` and modularize your driver.
 
 Next step is to compile our driver. We have 2 options: `1)` select the letter `<M>` after executing the command `$ make menuconfig` - **modularizing our feature** - this means that we will add our driver to the file system and then connect it with Linux Kernel (`$ make -j4 modules`). `2)` Choosing the letter `<Y>` - **includes our feature** - means we are adding our driver directly to the appropriate folder in `linux/drivers`, we are changing Linux Kernel physically, so we need to rebuild the entire Linux Kernel and get a new `zImage` (`$ make zImage`).
 
@@ -106,13 +108,14 @@ CONFIG_MISC_HELLO_WORLD=m
 go to root of Linux Kernel (/linux) and run:
 ```
 $ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig
-$ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig /* to chech that our configs were saved */
+$ grep -rn "CONFIG_MISC_HELLO_WORLD" arch/arm /* to check that our configs were saved */
 $ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j4 modules
 ```
 in `linux/drivers/misc` will appear: `hello_world.ko`, `hello_world.mod.c`, `hello_world.mod.o`, `hello_world.o`. Good!
 
 The last step is to connect rootfs.cpio archive with Linux Kernel. Download rootfs.cpio, in my case:
 ![where_is_cpio](imgs/where_is_cpio.png)
+
 **IMPORTANT!** All manipulations with rootfs.cpio we should do **under root user**:
 ```
 $ sudo su
@@ -123,10 +126,18 @@ unpack your archive:
 ```
 $ cpio -i < $ROOTFS_ARCHIVE
 ```
-add here your modules or do all needed changes to the rootfs filesystem; create rootfs archive again (attention: rewrites original file!).
+add here your modules or do all needed changes to the rootfs filesystem (now i'm in `rootfs/bin`):
+```
+$ cp ../../linux/drivers/misc/hello_world.ko .
+$ chmod +xw hello_world.ko 
+```
+create rootfs archive again (attention: rewrites original file; create archive inside root directory in rootfs/ folder!):
 ```
 $ find . | cpio -o -H newc > $ROOTFS_ARCHIVE
 ```
+**IMPORTANT!** Check (and change if needed) access rights for your rootfs.cpio (`$ chmod 777 rootfs.cpio`). Insufficient access rights can cause Kernel panic, while Linux Kernel will try to make friends with filesystem, for instance:
+![panic_1](imgs/panic_1.png)
+
 finish root mode (`$ exit`).
 Let's check!
 ```
@@ -134,11 +145,13 @@ $ cd linux
 $ qemu-system-arm -machine virt -kernel ./arch/arm/boot/zImage -initrd ../rootfs.cpio -nographic -m 512 --append "root=/dev/ram0 rw console=ttyAMA0,38400 console=ttyS0 mem=512M loglevel=9"
 ```
 ![qemu_inside](imgs/qemu_inside.png)
-here:
+now we are inside QEMU; go inside the corresponding directory into rootfs filesystem, where you left your driver.ko; try `insmod` and `rmmod`: 
 ```
+# cd /bin
 # insmod hello_world.ko 
 [  553.320697] Hello world
 # rmmod hello_world.ko 
 [  561.826473] Goodbye, world
 ```
-![null_pointer](imgs/null_pointer.png)
+here is the reaction of Linux Kernel on NULL pointer dereference inside module:
+![null_pointer](imgs/null_pointer_dereference.png)
