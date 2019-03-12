@@ -1,10 +1,9 @@
-/* hello_panic_world.c */
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Module to cause panic.");
+MODULE_DESCRIPTION("Module with null pointer dereference inside.");
 MODULE_AUTHOR("Kseniia Prytkova");
 
 static int __init hello_init(void)

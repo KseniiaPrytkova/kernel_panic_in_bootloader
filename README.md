@@ -94,7 +94,7 @@ now run `$ make menuconfig` and you will see your new module:
 
 press `<M>` and modularize your driver.
 
-Next step is to compile our driver. We have 2 options: `1)` select the letter `<M>` after executing the command `$ make menuconfig` - **modularizing our feature** - this means that we will add our driver to the file system and then connect it with Linux Kernel (`$ make -j4 modules`). `2)` Choosing the letter `<Y>` - **includes our feature** - means we are adding our driver directly to the appropriate folder in `linux/drivers`, we are changing Linux Kernel physically, so we need to rebuild the entire Linux Kernel and get a new `zImage` (`$ make zImage`).
+Next step is to compile our driver. We have 2 options: `1)` select the letter `<M>` after executing the command `$ make menuconfig` - **modularizing our feature** - this means that we will add our driver to the file system and then connect it with Linux Kernel (`$ make modules`). `2)` Choosing the letter `<Y>` - **includes our feature** - means we are adding our driver directly to the appropriate folder in `linux/drivers`, we are changing Linux Kernel physically, so we need to rebuild the entire Linux Kernel and get a new `zImage` (`$ make zImage`).
 
 We are using 'module approach'. In practice, we must modularize our driver directly in the code (not in the graphical interface). And never forget about target architecture. So:
 ```
@@ -116,7 +116,7 @@ in `linux/drivers/misc` will appear: `hello_world.ko`, `hello_world.mod.c`, `hel
 The last step is to connect rootfs.cpio archive with Linux Kernel. Download rootfs.cpio, in my case:
 ![where_is_cpio](imgs/where_is_cpio.png)
 
-**IMPORTANT!** All manipulations with rootfs.cpio we should do **under root user**:
+**IMPORTANT!** All manipulations with rootfs.cpio must be done **under root user**: 
 ```
 $ sudo su
 $ export ROOTFS_ARCHIVE=/path/to/rootfs.cpio
@@ -131,11 +131,12 @@ add here your modules or do all needed changes to the rootfs filesystem (now i'm
 $ cp ../../linux/drivers/misc/hello_world.ko .
 $ chmod +xw hello_world.ko 
 ```
-create rootfs archive again (attention: rewrites original file; create archive inside root directory in rootfs/ folder!):
+create rootfs archive again (**attention**: rewrites original file; create archive inside root directory in rootfs/ folder):
 ```
 $ find . | cpio -o -H newc > $ROOTFS_ARCHIVE
 ```
 **IMPORTANT!** Check (and change if needed) access rights for your rootfs.cpio (`$ chmod 777 rootfs.cpio`). Insufficient access rights can cause Kernel panic, while Linux Kernel will try to make friends with filesystem, for instance:
+
 ![panic_1](imgs/panic_1.png)
 
 finish root mode (`$ exit`).
@@ -145,6 +146,7 @@ $ cd linux
 $ qemu-system-arm -machine virt -kernel ./arch/arm/boot/zImage -initrd ../rootfs.cpio -nographic -m 512 --append "root=/dev/ram0 rw console=ttyAMA0,38400 console=ttyS0 mem=512M loglevel=9"
 ```
 ![qemu_inside](imgs/qemu_inside.png)
+
 now we are inside QEMU; go inside the corresponding directory into rootfs filesystem, where you left your driver.ko; try `insmod` and `rmmod`: 
 ```
 # cd /bin
