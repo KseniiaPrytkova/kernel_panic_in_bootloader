@@ -171,6 +171,16 @@ and finaly, the example of giving parameters to our module:
 
 ![params_ex](imgs/params_ex.png)
 
+making patch:
+```
+$ cd linux/
+$ git checkout -b hello_world
+$ git add .
+$ git commit -s
+$ git format-patch HEAD^1
+
+```
+
 #### Links
 * [Bootlin](https://elixir.bootlin.com/linux/latest/source)
 * [Linux Kernel Teaching](https://linux-kernel-labs.github.io/master/index.html)

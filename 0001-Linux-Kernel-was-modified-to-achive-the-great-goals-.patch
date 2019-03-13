@@ -1,0 +1,178 @@
+From 11b117691d019848041cd647a523ff832ae80d23 Mon Sep 17 00:00:00 2001
+From: Kseniia Prytkova <kseniia.prytkova@globallogic.com>
+Date: Wed, 13 Mar 2019 18:14:30 +0200
+Subject: [PATCH] Linux Kernel was modified to achive the great goals of doing
+ the first homework;
+
+Signed-off-by: Kseniia Prytkova <kseniia.prytkova@globallogic.com>
+---
+ arch/arm/configs/multi_v7_defconfig   |  3 +++
+ drivers/misc/Kconfig                  | 18 ++++++++++++++++++
+ drivers/misc/Makefile                 |  3 +++
+ drivers/misc/grep                     |  0
+ drivers/misc/hello_parametric_world.c | 27 +++++++++++++++++++++++++++
+ drivers/misc/hello_undefined_world.c  | 26 ++++++++++++++++++++++++++
+ drivers/misc/hello_world.c            | 21 +++++++++++++++++++++
+ drivers/misc/ls                       |  0
+ 8 files changed, 98 insertions(+)
+ create mode 100644 drivers/misc/grep
+ create mode 100644 drivers/misc/hello_parametric_world.c
+ create mode 100644 drivers/misc/hello_undefined_world.c
+ create mode 100644 drivers/misc/hello_world.c
+ create mode 100644 drivers/misc/ls
+
+diff --git a/arch/arm/configs/multi_v7_defconfig b/arch/arm/configs/multi_v7_defconfig
+index 63af623..ab146ae 100644
+--- a/arch/arm/configs/multi_v7_defconfig
++++ b/arch/arm/configs/multi_v7_defconfig
+@@ -1014,3 +1014,6 @@ CONFIG_CRYPTO_AES_ARM_CE=m
+ CONFIG_CRYPTO_GHASH_ARM_CE=m
+ CONFIG_CRYPTO_CRC32_ARM_CE=m
+ CONFIG_CRYPTO_CHACHA20_NEON=m
++CONFIG_MISC_HELLO_WORLD=m
++CONFIG_MISC_HELLO_UNDEFINED_WORLD=m
++CONFIG_MISC_HELLO_PARAMETRIC_WORLD=m
+\ No newline at end of file
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index 3726eac..bd63051 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -513,6 +513,24 @@ config MISC_RTSX
+ 	tristate
+ 	default MISC_RTSX_PCI || MISC_RTSX_USB
+ 
++config MISC_HELLO_WORLD
++	tristate "Hello world module example"
++	---help---
++		To compile this driver as a module, choose M
++		here: the module will be called "Hello world".
++
++config MISC_HELLO_UNDEFINED_WORLD
++	tristate "Module with null pointer dereference inside"
++	---help---
++		To compile this driver as a module, choose M
++		here: the module will be called "Hello world".
++
++config MISC_HELLO_PARAMETRIC_WORLD
++	tristate "Module with an answer to life"
++	---help---
++		To compile this driver as a module, choose M
++		here: the module will be called "Hello life".
++
+ source "drivers/misc/c2port/Kconfig"
+ source "drivers/misc/eeprom/Kconfig"
+ source "drivers/misc/cb710/Kconfig"
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index af22bbc..a255956 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -58,3 +58,6 @@ obj-$(CONFIG_ASPEED_LPC_SNOOP)	+= aspeed-lpc-snoop.o
+ obj-$(CONFIG_PCI_ENDPOINT_TEST)	+= pci_endpoint_test.o
+ obj-$(CONFIG_OCXL)		+= ocxl/
+ obj-$(CONFIG_MISC_RTSX)		+= cardreader/
++obj-$(CONFIG_MISC_HELLO_WORLD)	+= hello_world.o
++obj-$(CONFIG_MISC_HELLO_UNDEFINED_WORLD)	+= hello_undefined_world.o
++obj-$(CONFIG_MISC_HELLO_PARAMETRIC_WORLD)	+= hello_parametric_world.o
+diff --git a/drivers/misc/grep b/drivers/misc/grep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/drivers/misc/hello_parametric_world.c b/drivers/misc/hello_parametric_world.c
+new file mode 100644
+index 0000000..cd9f870
+--- /dev/null
++++ b/drivers/misc/hello_parametric_world.c
+@@ -0,0 +1,27 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/moduleparam.h>
++
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("Module with an answer to life");
++MODULE_AUTHOR("Kseniia Prytkova");
++
++static int answer = 42;
++module_param(answer, int, 0644);
++MODULE_PARM_DESC(answer, "Answer to the Ultimate Question of Life, the Universe, and Everything");
++
++static int __init hello_init(void)
++{
++	printk(KERN_INFO "hello_parametric_world module being loaded.\n");
++    printk(KERN_INFO "Initial answer = %d.\n", answer);
++	return 0;
++}
++
++static void __exit hello_exit(void)
++{
++	printk(KERN_INFO "hello_parametric_world module being unloaded.\n");
++}
++
++module_init(hello_init);
++module_exit(hello_exit);
+\ No newline at end of file
+diff --git a/drivers/misc/hello_undefined_world.c b/drivers/misc/hello_undefined_world.c
+new file mode 100644
+index 0000000..9d0e1e9
+--- /dev/null
++++ b/drivers/misc/hello_undefined_world.c
+@@ -0,0 +1,26 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("Module with null pointer dereference inside.");
++MODULE_AUTHOR("Kseniia Prytkova");
++
++static int __init hello_init(void)
++{
++	int *p;
++
++	p = NULL;
++	printk("Do you wanna know what an undefined behavior is?\n");
++	printk("Ohh really?!\n");
++	printk("%d\n", *p);
++	return 0;
++}
++
++static void __exit hello_exit(void)
++{
++	printk("Goodbye, world\n");
++}
++
++module_init(hello_init);
++module_exit(hello_exit);
+\ No newline at end of file
+diff --git a/drivers/misc/hello_world.c b/drivers/misc/hello_world.c
+new file mode 100644
+index 0000000..72ab0c5
+--- /dev/null
++++ b/drivers/misc/hello_world.c
+@@ -0,0 +1,21 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("Hello module");
++MODULE_AUTHOR("Kseniia Prytkova");
++
++static int __init hello_init(void)
++{
++	printk("Hello world\n");
++	return 0;
++}
++
++static void __exit hello_exit(void)
++{
++	printk("Goodbye, world\n");
++}
++
++module_init(hello_init);
++module_exit(hello_exit);
+diff --git a/drivers/misc/ls b/drivers/misc/ls
+new file mode 100644
+index 0000000..e69de29
+-- 
+2.7.4
+
