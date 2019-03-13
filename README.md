@@ -145,9 +145,11 @@ Let's check!
 $ cd linux
 $ qemu-system-arm -machine virt -kernel ./arch/arm/boot/zImage -initrd ../rootfs.cpio -nographic -m 512 --append "root=/dev/ram0 rw console=ttyAMA0,38400 console=ttyS0 mem=512M loglevel=9"
 ```
+now we are inside QEMU:
+
 ![qemu_inside](imgs/qemu_inside.png)
 
-now we are inside QEMU; go inside the corresponding directory into rootfs filesystem, where you left your driver.ko; try `insmod` and `rmmod`: 
+go inside the corresponding directory into rootfs filesystem, where you left your driver.ko; try `insmod` and `rmmod`:
 ```
 # cd /bin
 # insmod hello_world.ko 
@@ -155,5 +157,21 @@ now we are inside QEMU; go inside the corresponding directory into rootfs filesy
 # rmmod hello_world.ko 
 [  561.826473] Goodbye, world
 ```
-here is the reaction of Linux Kernel on NULL pointer dereference inside module:
+here is the reaction of Linux Kernel on NULL pointer dereference inside module (exactly in my case):
+
 ![null_pointer](imgs/null_pointer_dereference.png)
+
+The Linux Kernel can respond in several ways to inadequate events in the driver (and not only in driver): [**Decoding an oops/panic**](https://linux-kernel-labs.github.io/master/lectures/debugging.html)
+
+`hello_parametric_world.ko` - it's the module to show ability to change message by trough module parameters; use `modinfo` to see the list of parameters:
+
+![modinfo_ex](imgs/modinfo_ex.png)
+
+and finaly, the example of giving parameters to our module:
+
+![params_ex](imgs/params_ex.png)
+
+#### Links
+* [Bootlin](https://elixir.bootlin.com/linux/latest/source)
+* [Linux Kernel Teaching](https://linux-kernel-labs.github.io/master/index.html)
+* [The Kernel Newbie Corner: Everything You Wanted to Know About Module Parameters](https://www.linux.com/learn/kernel-newbie-corner-everything-you-wanted-know-about-module-parameters)
